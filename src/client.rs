@@ -10,13 +10,16 @@ fn main() {
     common::CLIENT_ADDR_SOCKET
   ).expect("ERROR OPENING SOCKET");
 
-  let movement = Point::new(-250, 500);
+  let movement = Point::new(2, 1);
   println!("SEND: {:?}", movement);
+  
   // Serialize the struct to a byte buffer
-  let serialized = serde_cbor::ser::to_vec(&movement).expect("Unable to serialize!!!");
+  let serialized = movement.ser();
+
   println!("SERIALIZED: {:?}", serialized);
-  socket.send_to( &serialized, common::SERVER_ADDR_SOCKET).expect("Failed to send message");
+  for _ in 0..150 {
+    socket.send_to( &serialized, common::SERVER_ADDR_SOCKET).expect("Failed to send message");
+  }
 
   println!("Closing!!!");
 }
-

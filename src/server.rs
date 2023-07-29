@@ -13,17 +13,23 @@ fn main() {
   let mut buffer = vec![0_u8; common::BUFFER_SIZE];
   loop {
     let received = a.recv(&mut buffer).expect("Unable to receive data!!!");
-    
-    println!("RECEIVED: {:?}", buffer[0..received].to_vec());
+    // println!("RECEIVED: {:?}", buffer[0..received].to_vec());
+    let bef  = std::time::Instant::now();
 
-    let deserialized_point = serde_cbor::de::from_slice::<point::Point>(&buffer[0..received]);
-    match deserialized_point {
-        Ok(pos) => {
-          println!("POINT: {:?}", pos);
-          rsautogui::mouse::move_rel(pos.x(), pos.y());
-        },
-        Err(err) => println!("{err}"),
+    if let Some(pos) = point::Point::des(&buffer[0..received]) {
+      let after  = std::time::Instant::now();
+      rsautogui::mouse::move_rel(pos.x(), pos.y());
+      println!("{:?}", (after - bef));
     }
+    
+    // let deserialized_point = serde_cbor::de::from_slice::<point::Point>(&buffer[0..received]);
+    // match deserialized_point {
+    //     Ok(pos) => {
+    //       println!("POINT: {:?}", pos);
+    //       rsautogui::mouse::move_rel(pos.x(), pos.y());
+    //     },
+    //     Err(err) => println!("{err}"),
+    // }
     
 
     // Abre o explorador de arquivos
