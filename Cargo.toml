@@ -1,5 +1,5 @@
 [package]
-name = "udp_networking_pratice"
+name = "remote_control_protocol"
 version = "0.1.0"
 edition = "2021"
 
