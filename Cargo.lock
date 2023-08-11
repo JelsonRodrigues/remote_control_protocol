@@ -587,6 +587,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "remote_control_protocol"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "rsautogui",
+ "serde",
+ "serde_cbor",
+]
+
+[[package]]
 name = "rsautogui"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -702,16 +712,6 @@ dependencies = [
  "flate2",
  "jpeg-decoder",
  "weezl",
-]
-
-[[package]]
-name = "udp_networking_pratice"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "rsautogui",
- "serde",
- "serde_cbor",
 ]
 
 [[package]]
