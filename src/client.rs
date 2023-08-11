@@ -1,6 +1,9 @@
 pub mod common;
 pub mod point;
 
+pub mod message;
+
+
 use point::Point;
 
 fn main() {
