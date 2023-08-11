@@ -1,11 +1,78 @@
 pub mod common;
-pub mod point;
 
-use rsautogui::keyboard::*;
+pub mod message;
+
+use std::io::{Read, Write};
+// use rsautogui::keyboard::*;
 
 fn main() {
+  let mut server_state : message::ServerStates = message::ServerStates::WaitingForConnection;
   println!("SERVER");
 
+  let socket_tcp = std::net::TcpListener::bind(common::SERVER_ADDR_SOCKET);
+
+  let socket = match socket_tcp {
+    Ok(socket) => socket,
+    Err(err) => {
+      eprintln!("Error creating TCP Listener on addres {}:{}, error {}", common::ADDRESS, common::PORT_SERVER, err);
+      std::process::exit(-1);
+    },
+  };
+
+  // Gen RSA keys
+  let (rsa_private, rsa_public_der_bytes) = {
+    let rsa_key = openssl::rsa::Rsa::generate(common::RSA_KEY_SIZE);
+    let private_key = match rsa_key {
+      Ok(private_key) => private_key,
+      Err(err) => {
+        eprintln!("Error creating the private key, error {}", err);
+        std::process::exit(-1);
+      },
+    };
+
+    let public_key_der_format = private_key.public_key_to_der_pkcs1();
+    let public_key_der_format_bytes = match public_key_der_format {
+      Ok(der_bytes) => der_bytes,
+      Err(err) => {
+        eprintln!("Error formatting public key as DER, error {}", err);
+        std::process::exit(-1);
+      }
+    };
+    (private_key, public_key_der_format_bytes)
+  };
+
+  println!("Key {:?}, der_len {:?}", rsa_private, rsa_public_der_bytes.len());
+
+  let mut sequence_send = 0;
+  let mut sequence_received = 0;
+  let mut buffer_encripted = [0_u8; common::BUFFER_SIZE];
+  let mut buffer_decripted = [0_u8; common::BUFFER_SIZE];
+
+  for conection in socket.incoming() {
+    if let Ok(mut conection) = conection {
+      server_state = message::ServerStates::ExchangingKeys;
+      
+      let message = message::Message::new(
+        message::MessageType::Server(message::ServerMessages::PubKey { der_bytes: rsa_public_der_bytes.clone() }),
+        sequence_send
+      );
+      sequence_send += 1;
+
+      conection.write(&message.ser()).unwrap();
+
+      // Wating for simetric keys
+      conection.read_exact(&mut buffer_encripted).unwrap();
+
+      rsa_private.private_decrypt(&buffer_encripted, &mut buffer_decripted, openssl::rsa::Padding::PKCS1).unwrap();
+      let message_got = message::Message::des(&buffer_decripted).unwrap();
+      println!("SERVER GOT: {:?}", message_got);
+
+    }
+  }
+  println!("listening");
+  return;
+
+  /*
   let a = std::net::UdpSocket::bind(
     std::net::SocketAddrV4::new(common::ADDRESS, common::PORT_SERVER)
   ).expect("ERROR OPENING SOCKET");
@@ -38,6 +105,8 @@ fn main() {
     // key_up(Vk::LeftWin);
 
   }
+
+   */
 }
 
 /*

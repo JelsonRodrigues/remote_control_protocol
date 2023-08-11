@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 pub enum ServerStates {
   WaitingForConnection,
   ExchangingKeys,
@@ -12,6 +14,7 @@ pub enum ClientStates {
   SendingMessage,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ClientMessages {
   SimKey { key_bytes : Vec<u8>, iv_bytes : Vec<u8> },
   Auth { hashed_password_bytes : Vec<u8>, upd_port_listening : u16 },
@@ -20,6 +23,7 @@ pub enum ClientMessages {
   RunCommand { current : u8, total : u8, string_bytes : Vec<u8> },
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessages {
   PubKey { der_bytes : Vec<u8> },
   AccessGranted { upd_port_listening : u16 },
@@ -28,17 +32,40 @@ pub enum ServerMessages {
   RequestSend { sequence_requested : u32 },
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {
   Client(ClientMessages),
   Server(ServerMessages)
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
-  lengh : u16,
-  sequence : u32,
-  message_type : MessageType,
-  // data : Vec<u8>,
+  pub sequence : u32,
+  pub message_type : MessageType,
 }
+
+impl Message {
+  pub fn new(message_type : MessageType, sequence: u32) -> Self {
+    Self {
+      sequence : sequence,
+      message_type : message_type,
+    }
+  }
+
+  pub fn ser(&self) -> Vec<u8> {
+    bincode::serialize(&self).expect("Unable to serialize!!!")
+  }
+
+  pub fn des(slice: &[u8]) -> Option<Self> {
+    let res = bincode::deserialize::<Self>(slice);
+    match res {
+      Ok(message) => Some(message),
+      Err(_) => None,
+    }
+  }
+}
+
+// data : Vec<u8>,
 
 /*
 // Server Messages

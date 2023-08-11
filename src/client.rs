@@ -1,17 +1,54 @@
 pub mod common;
-pub mod point;
-
 pub mod message;
 
-
-use point::Point;
+use std::io::{Read, Write};
 
 fn main() {
-  println!("CLIENT!");
+  println!("CLIENT!");    
+  let mut client_state : message::ClientStates = message::ClientStates::StartingConnection;
+  
+  // Connect to TCP
+  let socket_tcp = std::net::TcpStream::connect(common::SERVER_ADDR_SOCKET);
+
+  let mut socket = match socket_tcp {
+    Ok(socket) => socket,
+    Err(err) => {
+      eprintln!("Error connecting to the TCP socket {}:{}, error: {}", common::ADDRESS, common::PORT_SERVER, err);
+      std::process::exit(-1);
+    },
+  };
+
+  let mut buffer_encripted = [0_u8; common::BUFFER_SIZE];
+  let mut buffer_decripted = [0_u8; common::BUFFER_SIZE];
+
+  
+  let bytes = socket.read(&mut buffer_decripted).unwrap();
+  println!("bytes {bytes}");
+  println!("Array {:?}", buffer_decripted[0..bytes].to_vec());
+
+  let message = message::Message::des(&buffer_decripted[0..bytes]).unwrap();
+
+  if let message::MessageType::Server(server_message) = message.message_type {
+    if let message::ServerMessages::PubKey { der_bytes } = server_message {
+      let rsa_public = openssl::rsa::Rsa::public_key_from_der_pkcs1(&der_bytes).unwrap();
+      println!("RSA {:?}", rsa_public);
+      println!("der_bytes {:?}", der_bytes.len());
+    }
+  }
+
+
+  return;
+
+  
+
+  /*
 
   let socket = std::net::UdpSocket::bind(
     common::CLIENT_ADDR_SOCKET
   ).expect("ERROR OPENING SOCKET");
+
+  // Read the public key
+
 
   let movement = Point::new(2, 1);
   println!("SEND: {:?}", movement);
@@ -23,7 +60,7 @@ fn main() {
   for _ in 0..150 {
     socket.send_to( &serialized, common::SERVER_ADDR_SOCKET).expect("Failed to send message");
   }
-
+  */
   println!("Closing!!!");
 }
 
