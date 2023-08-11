@@ -13,19 +13,19 @@ pub enum ClientStates {
 }
 
 pub enum ClientMessages {
-  SimKey,
-  Auth,
-  MovePointer,
-  PressKey,
-  RunCommand,
+  SimKey { key_bytes : Vec<u8>, iv_bytes : Vec<u8> },
+  Auth { hashed_password_bytes : Vec<u8>, upd_port_listening : u16 },
+  MovePointer { x : i32, y : i32 },
+  PressKey { key_codes : [u8; 32]},
+  RunCommand { current : u8, total : u8, string_bytes : Vec<u8> },
 }
 
 pub enum ServerMessages {
-  PubKey,
-  AccessGranted,
+  PubKey { der_bytes : Vec<u8> },
+  AccessGranted { upd_port_listening : u16 },
   AccessDenied,
-  Ack,
-  RequestSend,
+  Ack { sequence_aknowledgement : u32 },
+  RequestSend { sequence_requested : u32 },
 }
 
 pub enum MessageType {
@@ -37,9 +37,10 @@ pub struct Message {
   lengh : u16,
   sequence : u32,
   message_type : MessageType,
-  data : Vec<u8>,
+  // data : Vec<u8>,
 }
 
+/*
 // Server Messages
 pub struct PubKey {
   der_bytes : Vec<u8>,
@@ -82,3 +83,5 @@ pub struct RunCommand {
   total : u8,
   string_bytes : Vec<u8>,
 }
+
+ */
