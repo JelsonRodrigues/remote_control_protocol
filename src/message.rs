@@ -53,14 +53,17 @@ impl Message {
   }
 
   pub fn ser(&self) -> Vec<u8> {
-    bincode::serialize(&self).expect("Unable to serialize!!!")
+    serde_cbor::to_vec(&self).unwrap()
   }
 
   pub fn des(slice: &[u8]) -> Option<Self> {
-    let res = bincode::deserialize::<Self>(slice);
+    let res = serde_cbor::from_slice(slice);
     match res {
       Ok(message) => Some(message),
-      Err(_) => None,
+      Err(err) =>{
+        println!("Eror {:?}", err);
+        None 
+      },
     }
   }
 }

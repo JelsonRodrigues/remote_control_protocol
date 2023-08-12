@@ -21,7 +21,6 @@ fn main() {
   let mut buffer_encripted = [0_u8; common::BUFFER_SIZE];
   let mut buffer_decripted = [0_u8; common::BUFFER_SIZE];
 
-  
   let bytes = socket.read(&mut buffer_decripted).unwrap();
   println!("bytes {bytes}");
   println!("Array {:?}", buffer_decripted[0..bytes].to_vec());

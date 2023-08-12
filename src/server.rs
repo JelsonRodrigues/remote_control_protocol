@@ -48,6 +48,9 @@ fn main() {
   let mut buffer_encripted = [0_u8; common::BUFFER_SIZE];
   let mut buffer_decripted = [0_u8; common::BUFFER_SIZE];
 
+  // println!("size key? {}", rsa_private.size());
+  // std::process::exit(0);
+
   for conection in socket.incoming() {
     if let Ok(mut conection) = conection {
       server_state = message::ServerStates::ExchangingKeys;
@@ -61,12 +64,30 @@ fn main() {
       conection.write(&message.ser()).unwrap();
 
       // Wating for simetric keys
-      conection.read_exact(&mut buffer_encripted).unwrap();
+      let size = conection.read(&mut buffer_encripted).unwrap();
+      println!("got size = {size}");
 
-      rsa_private.private_decrypt(&buffer_encripted, &mut buffer_decripted, openssl::rsa::Padding::PKCS1).unwrap();
-      let message_got = message::Message::des(&buffer_decripted).unwrap();
+      let key_bytes = rsa_private.size() as usize;
+      let max_size = (key_bytes - 11) as usize; // 11 bytes of PKCS1 overhead
+
+      let mut dec_helper = [0_u8; common::RSA_KEY_SIZE as usize / 8];
+
+      let message_size = buffer_encripted[0..size]
+        .chunks(key_bytes)
+        .zip(buffer_decripted.chunks_mut(max_size))
+        .map(|(enc, dec)| {
+          let size = rsa_private.private_decrypt(
+                enc,
+                &mut dec_helper,
+                openssl::rsa::Padding::PKCS1
+              ).unwrap();
+              dec[0..size].copy_from_slice(&dec_helper[0..size]);
+              size
+        })
+        .reduce(|sum, value| { sum + value }).unwrap();
+
+      let message_got = message::Message::des(&buffer_decripted[0..message_size]).unwrap();
       println!("SERVER GOT: {:?}", message_got);
-
     }
   }
   println!("listening");

@@ -21,6 +21,6 @@ bincode = []
 [dependencies]
 # rsautogui = "0.2.2"
 serde = {version = "1.0.174", features = ["derive"]}
-# serde_cbor = "0.11.2"
-bincode = "1.3.3"
+serde_cbor = "0.11.2"
+# bincode = "1.3.3"
 openssl = { version = "0.10.56", features = ["vendored"]}
