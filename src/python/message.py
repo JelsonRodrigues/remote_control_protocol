@@ -81,3 +81,13 @@ def creteRunCommandMessage(current : int, total : int, string_bytes : bytes ) ->
       }
     }
   }
+
+def creteQuitMessage() -> dict:
+  global message_sequence
+  message_sequence += 1
+  return {
+    'sequence' : message_sequence,
+    'message_type' : {
+      'Client' : 'Quit',
+    }
+  }

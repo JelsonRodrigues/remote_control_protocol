@@ -21,6 +21,7 @@ pub enum ClientMessages {
   MovePointer { x : i32, y : i32 },
   PressKey { key_codes : [u8; 32]},
   RunCommand { current : u8, total : u8, string_bytes : Vec<u8> },
+  Quit,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

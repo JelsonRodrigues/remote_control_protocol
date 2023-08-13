@@ -20,21 +20,35 @@ fn main() {
   let mut buffer_encripted = [0_u8; common::BUFFER_SIZE];
   let mut buffer_decripted = [0_u8; common::BUFFER_SIZE];
 
-  let (
-    aes_key_enc, 
-    aes_key_dec, 
-    iv, 
-    (message_send_sequence, message_receive_sequence), 
-    (udp_port_server, client_socket_addr)
-  ) = wait_connections_in_tcp(
-    &rsa_private,
-    &rsa_public_der_bytes,
-    &mut buffer_encripted,
-    &mut buffer_decripted,
-    &password_hash
-  );
+  loop {
+    println!("Listening TCP!");
+    let (
+      aes_key_enc, 
+      aes_key_dec, 
+      iv, 
+      (mut message_send_sequence, mut message_receive_sequence), 
+      (udp_port_server, client_socket_addr)
+    ) = wait_connections_in_tcp(
+      &rsa_private,
+      &rsa_public_der_bytes,
+      &mut buffer_encripted,
+      &mut buffer_decripted,
+      &password_hash
+    );
 
-  
+    println!("Listening UDP!");
+    handle_messages_in_udp(
+      &aes_key_enc,
+      &aes_key_dec,
+      &iv,
+      udp_port_server,
+      &client_socket_addr,
+      &mut message_send_sequence,
+      &mut message_receive_sequence,
+      &mut buffer_encripted,
+      &mut buffer_decripted,
+    );
+  }
 
 }
 
@@ -65,7 +79,7 @@ fn wait_connections_in_tcp(
       if let Ok(mut conection) = conection {
         let result = conection.peer_addr();
         if let Err(error) = result {
-          eprintln!("Error getting the IP and PORT of the remote conection");
+          eprintln!("Error getting the IP and PORT of the remote conection, error {error}");
           continue;
         }
         let mut socket_client = result.unwrap();
@@ -309,7 +323,7 @@ fn gen_rsa_key(key_size:u32) -> (openssl::rsa::Rsa<openssl::pkey::Private>, Vec<
 fn handle_messages_in_udp(
   aes_key_enc: &openssl::aes::AesKey,
   aes_key_dec: &openssl::aes::AesKey,
-  iv: &[u8; 32],
+  iv: &Vec<u8>,
   udp_port_server : u16,
   client_socket_addr : &std::net::SocketAddr,
   message_send_sequence : &mut u32,
@@ -326,7 +340,6 @@ fn handle_messages_in_udp(
     return;
   }
   let socket = result.unwrap();
-  println!("Listening UDP");
 
   loop {
     let result = socket.recv(buffer_encripted);
@@ -367,7 +380,7 @@ fn handle_messages_in_udp(
       message::MessageType::Client(client_message) => {
         match client_message {
           message::ClientMessages::MovePointer { x, y } => {
-            rsautogui::mouse::drag_rel(x, y);
+            rsautogui::mouse::move_rel(x, y);
           },
           message::ClientMessages::PressKey { key_codes } => {
             for i in key_codes {
@@ -378,6 +391,7 @@ fn handle_messages_in_udp(
           message::ClientMessages::RunCommand { current, total, string_bytes } => {
             eprintln!("Not implemented");
           },
+          message::ClientMessages::Quit => { return; },
           _ => {
             eprintln!("Message is of wrong type, shouldnt receive Auth/SimKey message now!");
             continue;
