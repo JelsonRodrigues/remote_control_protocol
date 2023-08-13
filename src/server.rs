@@ -3,7 +3,8 @@ pub mod common;
 pub mod message;
 
 use std::io::{Read, Write};
-// use rsautogui::keyboard::*;
+use rsautogui::keyboard::*;
+use rsautogui::mouse::*;
 
 fn main() {
   println!("SERVER");
@@ -24,7 +25,7 @@ fn main() {
     aes_key_dec, 
     iv, 
     (message_send_sequence, message_receive_sequence), 
-    (udp_port_server, udp_port_client)
+    (udp_port_server, client_socket_addr)
   ) = wait_connections_in_tcp(
     &rsa_private,
     &rsa_public_der_bytes,
@@ -44,7 +45,7 @@ fn wait_connections_in_tcp(
   buffer_decripted : &mut [u8],
   passord_hash : &[u8; 32]
 ) 
-  -> (openssl::aes::AesKey, openssl::aes::AesKey, Vec<u8>, (u32, u32), (u16, u16)){
+  -> (openssl::aes::AesKey, openssl::aes::AesKey, Vec<u8>, (u32, u32), (u16, std::net::SocketAddr)){
   // Start listening in TCP
   let socket_tcp = std::net::TcpListener::bind(common::SERVER_ADDR_SOCKET);
 
@@ -62,6 +63,12 @@ fn wait_connections_in_tcp(
       let mut message_send_sequence = 0;
       let mut message_receive_sequence = 0;
       if let Ok(mut conection) = conection {
+        let result = conection.peer_addr();
+        if let Err(error) = result {
+          eprintln!("Error getting the IP and PORT of the remote conection");
+          continue;
+        }
+        let mut socket_client = result.unwrap();
 
         // Hanlde key exchange and get simetric keys
         let key_result = handle_key_exchange(
@@ -94,12 +101,13 @@ fn wait_connections_in_tcp(
         if let None = autentication_result { continue; }
 
         let (autenticated, (udp_port_server, udp_port_client)) = autentication_result.unwrap();
+        socket_client.set_port(udp_port_client);
 
         if !autenticated { continue; }
 
         println!("Autenticated!");
         conection.shutdown(std::net::Shutdown::Both).unwrap();
-        return (aes_key_enc, aes_key_dec, iv, (message_send_sequence, message_receive_sequence), (udp_port_server, udp_port_client));
+        return (aes_key_enc, aes_key_dec, iv, (message_send_sequence, message_receive_sequence), (udp_port_server, socket_client));
       }
     }
   }
@@ -298,159 +306,88 @@ fn gen_rsa_key(key_size:u32) -> (openssl::rsa::Rsa<openssl::pkey::Private>, Vec<
   (private_key, public_key_der_format_bytes)
 }
 
-fn handle_messages_in_udp() {
+fn handle_messages_in_udp(
+  aes_key_enc: &openssl::aes::AesKey,
+  aes_key_dec: &openssl::aes::AesKey,
+  iv: &[u8; 32],
+  udp_port_server : u16,
+  client_socket_addr : &std::net::SocketAddr,
+  message_send_sequence : &mut u32,
+  message_receive_sequence : &mut u32,
+  buffer_encripted : &mut [u8],
+  buffer_decripted : &mut [u8],
+) {
   // Start listen in UDP port specified
-
-  // For each message verify if the sequence number is correct, 
-  // if not, send a message requesting that number
-  // else just do the action specified in the message
-  todo!()
-}
-  /*
-  let a = std::net::UdpSocket::bind(
-    std::net::SocketAddrV4::new(common::ADDRESS, common::PORT_SERVER)
-  ).expect("ERROR OPENING SOCKET");
-  
-  let mut buffer = vec![0_u8; common::BUFFER_SIZE];
-  loop {
-    let received = a.recv(&mut buffer).expect("Unable to receive data!!!");
-    // println!("RECEIVED: {:?}", buffer[0..received].to_vec());
-    let bef  = std::time::Instant::now();
-
-    if let Some(pos) = point::Point::des(&buffer[0..received]) {
-      let after  = std::time::Instant::now();
-      rsautogui::mouse::move_rel(pos.x(), pos.y());
-      println!("{:?}", (after - bef));
-    }
-    
-    // let deserialized_point = serde_cbor::de::from_slice::<point::Point>(&buffer[0..received]);
-    // match deserialized_point {
-    //     Ok(pos) => {
-    //       println!("POINT: {:?}", pos);
-    //       rsautogui::mouse::move_rel(pos.x(), pos.y());
-    //     },
-    //     Err(err) => println!("{err}"),
-    // }
-    
-
-    // Abre o explorador de arquivos
-    // key_down(Vk::LeftWin);
-    // key_tap(Vk::R);
-    // key_up(Vk::LeftWin);
-
+  let result = std::net::UdpSocket::bind(
+    std::net::SocketAddrV4::new(common::ADDRESS, udp_port_server)
+  );
+  if let Err(error) = result {
+    eprintln!("Error binding to the UDP socket, error {error}");
+    return;
   }
+  let socket = result.unwrap();
+  println!("Listening UDP");
 
-   */
-
-
-/*
-
-// Generate a random uuid
-// encrypt the ID
-// Send it to the client
-
-use std::{net::{SocketAddrV4, TcpStream}, io::{Write, Read}};
-use openssl::aes::AesKey;
-
-pub mod commom;
-use commom::*;
-
-fn main() {
-    println!("This is the Server side");
-
-    // Generate uuid
-    let server_uuid = generate_uuid();
-    println!("server - UUID: {server_uuid}");
-
-    // Create listener
-    let listener = std::net::TcpListener::bind(SocketAddrV4::new(ADDRESS, PORT))
-        .expect("Unable to create listener!!");
-    println!("IP: {}", listener.local_addr().unwrap());
-
-    loop {
-        for item in listener.incoming() {
-            if let Ok(stream) = item {
-                handle_connection(stream);
-            }
-        }
-    }
-}
-
-fn generate_uuid() -> uuid::Uuid {
-    return uuid::Uuid::new_v4();
-}
-
-fn handle_connection(mut stream: TcpStream){
-    let addr = stream.peer_addr().expect("Error");
-    println!("Address incoming {addr}");
-
-    let (aes_key, iv) = handle_security_protocol(&mut stream);
-
-    let aes_key_enc = openssl::aes::AesKey::new_encrypt(&aes_key).unwrap();
-    let aes_key_dec = openssl::aes::AesKey::new_decrypt(&aes_key).unwrap();
-
-    let mut iv_enc = iv.clone();
-    let mut iv_dec = iv.clone();
-
-    handle_send_random_uuid_request(&mut stream, &aes_key_enc, &mut iv_enc);
-
-    // Get the Number of Request and display
-    let mut buffer: Vec<u8> = Vec::new();
-    let mut number_bytes = [0_u8; 8];
-    for _ in 0..NUMBERS_TO_SEND {
-        decrypt_receiving_data(&mut stream, &mut buffer, &aes_key_dec, &mut iv_dec);
-        number_bytes.copy_from_slice(&buffer[..8]);
-        let number = i64::from_le_bytes(number_bytes);
-        println!("Number {number}");
+  loop {
+    let result = socket.recv(buffer_encripted);
+    if let Err(error) = result {
+      eprintln!("Error getting data from the socket, error {error}");
+      return;
     }
 
-    for _ in 0..NUMBERS_TO_SEND {
-        send_random_number(&mut stream, &aes_key_enc, &mut iv_enc);
+    let size = result.unwrap();
+    let message_size = common::dec_aes(buffer_encripted, buffer_decripted, size, aes_key_dec, iv);
+    let result = message::Message::des(&buffer_decripted[..message_size]);
+    if let None = result {
+      eprintln!("Error parsing the message");
+      continue;
     }
+
+    let message = result.unwrap();
+
+    if message.sequence -1 != *message_receive_sequence {
+      // Send request message
+      let message = message::Message::new(*message_send_sequence, message::MessageType::Server(message::ServerMessages::RequestSend { sequence_requested: *message_receive_sequence }));
+      let message_serialized = message.ser();
+      
+      buffer_decripted[..message_serialized.len()].copy_from_slice(&message_serialized);
+      let size = common::enc_aes(buffer_decripted, buffer_encripted, message_serialized.len(), aes_key_enc, iv);
+
+      let result = socket.send_to(&buffer_encripted[..size], client_socket_addr);
+      if let Err(error) = result {
+        eprintln!("Error sending request message, error {error}");
+        return;
+      }
+      continue;
+    }
+
+    *message_receive_sequence = message.sequence;
     
+    match message.message_type {
+      message::MessageType::Client(client_message) => {
+        match client_message {
+          message::ClientMessages::MovePointer { x, y } => {
+            rsautogui::mouse::drag_rel(x, y);
+          },
+          message::ClientMessages::PressKey { key_codes } => {
+            for i in key_codes {
+              if i == 0 { break; }
+              rsautogui::keyboard::key_tap(unsafe { Vk::from_u8(i) });
+            }
+          },
+          message::ClientMessages::RunCommand { current, total, string_bytes } => {
+            eprintln!("Not implemented");
+          },
+          _ => {
+            eprintln!("Message is of wrong type, shouldnt receive Auth/SimKey message now!");
+            continue;
+          }
+        }
+      },
+      message::MessageType::Server(_) => {
+        eprintln!("Message is of wrong type, should receive Client message instead of Server message!");
+        continue;
+      },
+    }
+  }
 }
-
-fn send_random_number(stream: &mut std::net::TcpStream, aes_key_enc: &openssl::aes::AesKey, iv_enc: &mut [u8]) {
-    let number_to_send:i64 = rand::random::<i64>() % 2048 + 10000;
-    encrypt_send_data(stream, &number_to_send.to_le_bytes(), &aes_key_enc, iv_enc);
-    println!("Number sent {number_to_send}");
-}
-
-fn handle_send_random_uuid_request(stream: &mut TcpStream, aes_enc_key: &AesKey, iv_enc: &mut [u8]) {
-    let random_uuid = generate_uuid();
-    println!("UUID sent {random_uuid}");
-    encrypt_send_data(stream, &random_uuid.to_bytes_le(), aes_enc_key, iv_enc);
-}
-
-fn handle_security_protocol(stream: &mut TcpStream) -> (Vec<u8>, Vec<u8>) {
-    // Generate asymetric RSA key
-    let rsa_key = openssl::rsa::Rsa::generate(RSA_KEY_SIZE).unwrap();
-
-    // Format as DER
-    let der_format = rsa_key.public_key_to_der().unwrap();
-
-    // Send to the client
-    stream.write(&der_format.len().to_le_bytes()).unwrap();  // Writes usize bytes and send to client the ammount of data to retrieve from the stream
-    stream.write(&der_format).unwrap();
-
-    // Get the bytes of AES Key
-    let mut aes_key_bytes_enc: Vec<u8> = get_initialized_buffer(rsa_key.size() as usize);
-    stream.read_exact(&mut aes_key_bytes_enc).unwrap();
-
-    // Get the bytes of IV for AES Key
-    let mut iv_bytes_enc = get_initialized_buffer(rsa_key.size() as usize);
-    stream.read_exact(&mut iv_bytes_enc).unwrap();
-
-    let mut aes_key_bytes: Vec<u8> = get_initialized_buffer(rsa_key.size() as usize);
-    let mut iv_bytes: Vec<u8> = get_initialized_buffer(rsa_key.size() as usize);
-
-    let size_key = rsa_key.private_decrypt(&aes_key_bytes_enc, &mut aes_key_bytes, openssl::rsa::Padding::PKCS1).unwrap();
-    let size_iv = rsa_key.private_decrypt(&iv_bytes_enc, &mut iv_bytes, openssl::rsa::Padding::PKCS1).unwrap();
-
-    aes_key_bytes.truncate(size_key);
-    iv_bytes.truncate(size_iv);
-
-    (aes_key_bytes, iv_bytes)
-}
-
-*/
