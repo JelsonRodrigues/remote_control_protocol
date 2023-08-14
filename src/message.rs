@@ -5,7 +5,7 @@ pub enum ClientMessages {
   SimKey { key_bytes : Vec<u8>, iv_bytes : Vec<u8> },
   Auth { hashed_password_bytes : Vec<u8>, upd_port_listening : u16 },
   MovePointer { x : i32, y : i32 },
-  PressKey { key_codes : [u8; 32]},
+  PressKey { key_codes :Vec<u8>},
   RunCommand { string_bytes : Vec<u8> },
   Quit,
 }

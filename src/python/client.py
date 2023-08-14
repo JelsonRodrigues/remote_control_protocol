@@ -6,7 +6,6 @@ import select
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.ciphers.algorithms import AES256
 from ssl import RAND_bytes
 import cryptg
 import math
@@ -15,7 +14,8 @@ from typing import Tuple
 
 from message import *
 
-HOST = '127.0.0.1'  # The server's hostname or IP address
+# HOST = '127.0.0.1'  # The server's hostname or IP address
+HOST = '172.16.67.136'
 PORT = 5824         # The port used by the server
 CLIENT_IP = '0.0.0.0'
 UDP_PORT_CLIENT = 63251
@@ -195,13 +195,16 @@ def handle_send_message(
           print("Received wrong message")
 
 
-      v = int(input("Digite uma ação, 1 mover mouse aleatoriamente, 2 pressionar espaco, 3 quit: "))
+      v = int(input("Digite uma ação, 1 mover mouse, 2 pressionar tecla, 3 quit: "))
       if v == 1:
-        message = creteMovePointerMessage(random.randint(-50, 50), random.randint(-50, 50))
+        valuex = int(input("Movimento x: "))
+        valuey = int(input("Movimento y: "))
+
+        message = creteMovePointerMessage(valuex, valuey)
       elif v == 2:
-        keys = [0 for _ in range(32)] 
-        keys[0] = 0x20
-        message = cretePressKeyMessage(keys)
+        keys_to_press = str(input("Teclas para presisonar: "))
+        message = cretePressKeyMessage(keys_to_press.encode("utf-8"))
+        
       elif v == 3:
         message = creteQuitMessage()
         messages_list.append(message)
@@ -230,7 +233,7 @@ def main():
     
     (aes_key, iv, receiving_sequence) = result
 
-    password = "PasswordExample"
+    password = input("Type the password: ")
 
     result = handle_autentication(s, aes_key, iv, receiving_sequence, password)
     

@@ -1,16 +1,23 @@
 pub mod common;
-
 pub mod message;
 
 use std::io::{Read, Write};
-use rsautogui::keyboard::*;
-use rsautogui::mouse::*;
 
 fn main() {
   println!("SERVER");
  
-  let password = "PasswordExample";
-  let password_hash = openssl::sha::sha256(password.as_bytes());
+  let password_hash = loop {
+    println!("Set SERVER password");
+    let mut password = String::new();
+    let result = std::io::stdin().read_line(&mut password);
+    if let Err(error) = result {
+      eprintln!("Error reading the password!!");
+      continue;
+    }
+    
+    println!("Password {password}");
+    break openssl::sha::sha256(password.trim_end().as_bytes());
+  };
 
   // Gen RSA keys
   let (rsa_private, rsa_public_der_bytes) = gen_rsa_key(common::RSA_KEY_SIZE);
@@ -396,12 +403,26 @@ fn handle_messages_in_udp(
       message::MessageType::Client(client_message) => {
         match client_message {
           message::ClientMessages::MovePointer { x, y } => {
-            rsautogui::mouse::move_rel(x, y);
+            // rsautogui::mouse::move_rel(x, y);
+            let currrent_pos = autopilot::mouse::location();
+            let new_pos = autopilot::geometry::Point::new(currrent_pos.x + x as f64, currrent_pos.y + y as f64);
+            let result = autopilot::mouse::move_to(new_pos);
+            if let Err(error) = result {
+              eprintln!("An error occurred while moving the mouse, error {error}");
+            }
           },
           message::ClientMessages::PressKey { key_codes } => {
             for i in key_codes {
-              if i == 0 { break; }
-              rsautogui::keyboard::key_tap(unsafe { Vk::from_u8(i) });
+              if i <= 42 && i > 0 {
+                eprintln!("Cannot press key {i} yet");
+                // autopilot::key::tap(
+                  // &autopilot::key::Code(i), &[], 0, 0);
+              }
+              let result = char::from_u32(i as u32);
+              if let Some(char) = result {
+                let character = autopilot::key::Character(char);
+                autopilot::key::tap(&character, &[], 0, 0);
+              }
             }
           },
           message::ClientMessages::RunCommand { string_bytes } => {

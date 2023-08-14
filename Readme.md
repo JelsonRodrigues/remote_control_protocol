@@ -5,6 +5,13 @@ Este protocolo foi criado como trabalho para a cadeira de redes de computadores
 # Run
 
 Para executar, é necessário ter instalado o [Python](https://www.python.org/downloads/), o [Rust e Cargo](https://www.rust-lang.org/tools/install) e a biblioteca [openssl](https://www.openssl.org/source/) <br>
+No linux precisa da biblioteca `glib-2.0`, instale com o comando 
+
+```shell
+sudo apt install libglib2.0*
+sudo apt install librust-pangocairo*
+sudo apt install librust-gdk*
+```
 
 Clone o repositório
 

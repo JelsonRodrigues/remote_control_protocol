@@ -19,7 +19,9 @@ cbor = []
 bincode = []
 
 [dependencies]
-rsautogui = "0.2.2"
+# rsautogui = "0.2.2"
+# druid = "0.8.3"
+autopilot = "0.4.0"
 serde = {version = "1.0.174", features = ["derive"]}
 serde_cbor = "0.11.2"
 openssl = { version = "0.10.56", features = ["vendored"]}
