@@ -215,7 +215,7 @@ def handle_send_message(
       messages_list.append(message)
       encoded_message = cbor.cbor.dumps(message)
       encrypted = enc_aes(encoded_message, aes_key, iv)
-       s.sendto(encrypted, server_address)
+      s.sendto(encrypted, server_address)
 
 def main():
   # Try open TCP connection
