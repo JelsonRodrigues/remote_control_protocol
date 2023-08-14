@@ -1,4 +1,5 @@
-pub const ADDRESS:std::net::Ipv4Addr = std::net::Ipv4Addr::LOCALHOST;
+// pub const ADDRESS:std::net::Ipv4Addr = std::net::Ipv4Addr::LOCALHOST;
+pub const ADDRESS:std::net::Ipv4Addr = std::net::Ipv4Addr::new(0, 0, 0, 0);
 pub const PORT_CLIENT:u16 = 5823;
 pub const PORT_SERVER:u16 = 5824;
 pub const BUFFER_SIZE:usize = 1 << 11;

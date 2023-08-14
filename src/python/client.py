@@ -32,7 +32,6 @@ def enc_aes(input:bytes, key:bytes, iv:bytes) -> bytes:
   
   message_to_encript[-8:] = len(input).to_bytes(length=8, byteorder='big', signed=False)
   return cryptg.encrypt_ige(bytes(message_to_encript), key, iv)
-  # return AESGCM(key).encrypt(0, input, None)
 
 def dec_aes(input:bytes, key:bytes, iv:bytes) -> bytes:
   dec = cryptg.decrypt_ige(bytes(input), key, iv)

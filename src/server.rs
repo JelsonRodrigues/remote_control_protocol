@@ -8,7 +8,7 @@ use rsautogui::mouse::*;
 
 fn main() {
   println!("SERVER");
-
+ 
   let password = "PasswordExample";
   let password_hash = openssl::sha::sha256(password.as_bytes());
 
