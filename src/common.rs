@@ -4,7 +4,7 @@ pub const PORT_SERVER:u16 = 5824;
 pub const BUFFER_SIZE:usize = 1 << 11;
 pub const CLIENT_ADDR_SOCKET: std::net::SocketAddrV4 = std::net::SocketAddrV4::new(ADDRESS, PORT_CLIENT);
 pub const SERVER_ADDR_SOCKET: std::net::SocketAddrV4 = std::net::SocketAddrV4::new(ADDRESS, PORT_SERVER);
-pub const RSA_KEY_SIZE : u32 = 2048;
+pub const RSA_KEY_SIZE : u32 = 1024;
 
 pub fn dec_aes(input:&[u8], out:&mut [u8], bytes_to_decrypt:usize, dec_key:&openssl::aes::AesKey, iv : &[u8]) -> usize {
   let mut len_message_bytes = [0_u8; 8];
@@ -12,6 +12,7 @@ pub fn dec_aes(input:&[u8], out:&mut [u8], bytes_to_decrypt:usize, dec_key:&open
 
   let mut iv_clone = [0_u8; 32];
   iv_clone.copy_from_slice(&iv);
+  
   openssl::aes::aes_ige(&input[..bytes_to_decrypt], &mut out[..bytes_to_decrypt], dec_key, &mut iv_clone, openssl::symm::Mode::Decrypt);
 
   len_message_bytes.copy_from_slice(&out[bytes_to_decrypt-8..bytes_to_decrypt]);

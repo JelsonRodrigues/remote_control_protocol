@@ -1,9 +1,12 @@
 import cbor
 import socket
 import hashlib
+import select
 
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.ciphers.algorithms import AES256
 from ssl import RAND_bytes
 import cryptg
 import math
@@ -29,6 +32,7 @@ def enc_aes(input:bytes, key:bytes, iv:bytes) -> bytes:
   
   message_to_encript[-8:] = len(input).to_bytes(length=8, byteorder='big', signed=False)
   return cryptg.encrypt_ige(bytes(message_to_encript), key, iv)
+  # return AESGCM(key).encrypt(0, input, None)
 
 def dec_aes(input:bytes, key:bytes, iv:bytes) -> bytes:
   dec = cryptg.decrypt_ige(bytes(input), key, iv)
@@ -155,6 +159,42 @@ def handle_send_message(
     server_address = (HOST, udp_port_server)
 
     while True:
+      #  Check if got any message from server
+      readable, writable, exceptional = select.select([s], [], [], 0)
+      if s in readable:
+        message_got = s.recv(BUFFER_SIZE)
+        message_dec = dec_aes(message_got, aes_key, iv)
+        message = cbor.cbor.loads(message_dec)
+
+        # check message type
+        if 'sequence' in message and 'message_type' in message:
+          type = message['message_type']
+          if 'Server' in type:
+            server_message = type['Server']
+            
+            if 'Ack' in server_message:
+              print("Got Ack")
+              ack_number = message['message_type']['Server']['Ack']['sequence_aknowledgement']
+              for message in messages_list:
+                sequence = message['sequence']
+                if sequence <= ack_number:
+                  messages_list.remove(message)
+            elif 'RequestSend' in server_message:
+              print("Got request send")
+              requested_number = message['message_type']['Server']['RequestSend']['sequence_requested']
+              for index in range(len(messages_list)):
+                message = messages_list[index]
+                sequence = message['sequence']
+                if sequence >= requested_number:
+                  encoded_message = cbor.cbor.dumps(message)
+                  encrypted = enc_aes(encoded_message, aes_key, iv)
+                  s.sendto(encrypted, server_address)
+          else:
+            print("Got and client message instead of a server message")
+        else:
+          print("Received wrong message")
+
+
       v = int(input("Digite uma ação, 1 mover mouse aleatoriamente, 2 pressionar espaco, 3 quit: "))
       if v == 1:
         message = creteMovePointerMessage(random.randint(-50, 50), random.randint(-50, 50))
@@ -175,7 +215,7 @@ def handle_send_message(
       messages_list.append(message)
       encoded_message = cbor.cbor.dumps(message)
       encrypted = enc_aes(encoded_message, aes_key, iv)
-      s.sendto(encrypted, server_address)
+       s.sendto(encrypted, server_address)
 
 def main():
   # Try open TCP connection
@@ -192,7 +232,6 @@ def main():
 
     password = "PasswordExample"
 
-    
     result = handle_autentication(s, aes_key, iv, receiving_sequence, password)
     
     if result is None:

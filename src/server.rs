@@ -151,7 +151,7 @@ fn handle_key_exchange(
   // Receive Simetric Key
   let result = socket.read(buffer_encripted);
   if let Err(error) = result {
-    eprintln!("Error sending public keys, error {error}");
+    eprintln!("Error reading simetric key bytes, error {error}");
     return None;
   }
 
@@ -361,6 +361,7 @@ fn handle_messages_in_udp(
     if message.sequence -1 != *message_receive_sequence {
       // Send request message
       let message = message::Message::new(*message_send_sequence, message::MessageType::Server(message::ServerMessages::RequestSend { sequence_requested: *message_receive_sequence }));
+      *message_send_sequence += 1;
       let message_serialized = message.ser();
       
       buffer_decripted[..message_serialized.len()].copy_from_slice(&message_serialized);
@@ -372,6 +373,21 @@ fn handle_messages_in_udp(
         return;
       }
       continue;
+    }
+    else {
+      // Send Ack
+      let ack_message = message::Message::new(*message_send_sequence, message::MessageType::Server(message::ServerMessages::Ack { sequence_aknowledgement: message.sequence }));
+      *message_send_sequence += 1;
+      let message_serialized = ack_message.ser();
+      
+      buffer_decripted[..message_serialized.len()].copy_from_slice(&message_serialized);
+      let size = common::enc_aes(buffer_decripted, buffer_encripted, message_serialized.len(), aes_key_enc, iv);
+
+      let result = socket.send_to(&buffer_encripted[..size], client_socket_addr);
+      if let Err(error) = result {
+        eprintln!("Error sending Ack message, error {error}");
+        return;
+      }
     }
 
     *message_receive_sequence = message.sequence;
@@ -388,7 +404,7 @@ fn handle_messages_in_udp(
               rsautogui::keyboard::key_tap(unsafe { Vk::from_u8(i) });
             }
           },
-          message::ClientMessages::RunCommand { current, total, string_bytes } => {
+          message::ClientMessages::RunCommand { string_bytes } => {
             eprintln!("Not implemented");
           },
           message::ClientMessages::Quit => { return; },

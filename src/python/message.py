@@ -66,7 +66,7 @@ def cretePressKeyMessage(key_codes : [int]) -> dict:
     }
   }
 
-def creteRunCommandMessage(current : int, total : int, string_bytes : bytes ) -> dict:
+def creteRunCommandMessage(string_bytes : bytes ) -> dict:
   global message_sequence
   message_sequence += 1
   return {
@@ -74,8 +74,6 @@ def creteRunCommandMessage(current : int, total : int, string_bytes : bytes ) ->
     'message_type' : {
       'Client' : {
         'RunCommand' : {
-          'current' : current,
-          'total' : total,
           'string_bytes' : [int(x) for x in string_bytes]
         }
       }
