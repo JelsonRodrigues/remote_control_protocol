@@ -427,6 +427,30 @@ fn handle_messages_in_udp(
           },
           message::ClientMessages::RunCommand { string_bytes } => {
             eprintln!("Not implemented");
+            let result = String::from_utf8(string_bytes);
+            match result {
+              Ok(comand) =>  {
+                let has_args = comand.find(" ");
+                if let Some(location) = has_args {
+                  let (program, args)= comand.split_at(location);
+                  println!("command: {program}");
+                  let child = std::process::Command::new(program)
+                              .arg(args)
+                              .spawn()
+                              .expect("failed to execute child");
+
+                }
+                else {
+                  println!("command: {comand}");
+                  let child = std::process::Command::new(comand)
+                              .spawn()
+                              .expect("failed to execute child");
+                }
+              },
+              Err(error) => {
+                eprintln!("Failed to parse string, error {error}");
+              },
+            } 
           },
           message::ClientMessages::Quit => { return; },
           _ => {

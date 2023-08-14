@@ -195,7 +195,7 @@ def handle_send_message(
           print("Received wrong message")
 
 
-      v = int(input("Digite uma ação, 1 mover mouse, 2 pressionar tecla, 3 quit: "))
+      v = int(input("Digite uma ação, 1 mover mouse, 2 pressionar tecla, 3 abrir terminal, 4 quit: "))
       if v == 1:
         valuex = int(input("Movimento x: "))
         valuey = int(input("Movimento y: "))
@@ -204,8 +204,10 @@ def handle_send_message(
       elif v == 2:
         keys_to_press = str(input("Teclas para presisonar: "))
         message = cretePressKeyMessage(keys_to_press.encode("utf-8"))
-        
       elif v == 3:
+        command = "gnome-system-monitor"
+        message = creteRunCommandMessage(command.encode("utf-8"))
+      elif v == 4:
         message = creteQuitMessage()
         messages_list.append(message)
         encoded_message = cbor.cbor.dumps(message)
