@@ -1,19 +1,5 @@
 use serde::{Serialize, Deserialize};
 
-pub enum ServerStates {
-  WaitingForConnection,
-  ExchangingKeys,
-  AuthenticatingClient,
-  WaitingForMessages,
-}
-
-pub enum ClientStates {
-  StartingConnection,
-  ExchangingKeys,
-  Authenticating,
-  SendingMessage,
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ClientMessages {
   SimKey { key_bytes : Vec<u8>, iv_bytes : Vec<u8> },
