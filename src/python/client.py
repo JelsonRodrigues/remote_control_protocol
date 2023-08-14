@@ -17,6 +17,7 @@ from message import *
 
 HOST = '127.0.0.1'  # The server's hostname or IP address
 PORT = 5824         # The port used by the server
+CLIENT_IP = '0.0.0.0'
 UDP_PORT_CLIENT = 63251
 BUFFER_SIZE = 1 << 11 # Buffer size
 AES_KEY_SIZE_IN_BITS = 256
@@ -154,7 +155,7 @@ def handle_send_message(
   ):
   messages_list = []
   with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-    s.bind(('LOCALHOST', UDP_PORT_CLIENT))
+    s.bind((CLIENT_IP, UDP_PORT_CLIENT))
     server_address = (HOST, udp_port_server)
 
     while True:
