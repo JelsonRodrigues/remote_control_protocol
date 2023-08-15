@@ -434,17 +434,20 @@ fn handle_messages_in_udp(
                 if let Some(location) = has_args {
                   let (program, args)= comand.split_at(location);
                   println!("command: {program}");
-                  let child = std::process::Command::new(program)
+                  let result = std::process::Command::new(program)
                               .arg(args)
-                              .spawn()
-                              .expect("failed to execute child");
-
+                              .spawn();
+                  if let Err(error) = result {
+                    eprintln!{"Unable to run the command. Error {error}"};
+                  }
                 }
                 else {
                   println!("command: {comand}");
-                  let child = std::process::Command::new(comand)
-                              .spawn()
-                              .expect("failed to execute child");
+                  let result = std::process::Command::new(comand)
+                              .spawn();
+                  if let Err(error) = result {
+                    eprintln!{"Unable to run the command. Error {error}"};
+                  }
                 }
               },
               Err(error) => {
