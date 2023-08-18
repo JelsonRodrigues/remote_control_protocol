@@ -52,7 +52,7 @@ def creteMovePointerMessage(x:int, y:int) -> dict:
     }
   }
 
-def cretePressKeyMessage(key_codes : [int]) -> dict:
+def cretePressKeyMessage(key_codes : bytes) -> dict:
   global message_sequence
   message_sequence += 1
   return {
@@ -60,7 +60,7 @@ def cretePressKeyMessage(key_codes : [int]) -> dict:
     'message_type' : {
       'Client' : {
         'PressKey' : {
-          'key_codes' : key_codes[0:32]
+          'key_codes' : [int(x) for x in key_codes]
         }
       }
     }
